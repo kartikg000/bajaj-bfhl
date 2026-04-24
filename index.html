@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BFHL Node Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3d;
+    --accent: #7c6af7;
+    --accent2: #f76a8c;
+    --green: #4af7a0;
+    --yellow: #f7d96a;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --font: 'Syne', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; left: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,106,247,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -100px; right: -100px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(247,106,140,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(124,106,247,0.3);
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: clamp(32px, 6vw, 52px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -1px;
+  }
+
+  h1 span {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 400;
+  }
+
+  .input-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-bottom: 12px;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 16px;
+    resize: vertical;
+    min-height: 130px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.7;
+  }
+
+  textarea:focus {
+    border-color: var(--accent);
+  }
+
+  textarea::placeholder { color: var(--muted); }
+
+  .hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-family: var(--font);
+    font-weight: 700;
+    font-size: 14px;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #9b8cf9);
+    color: white;
+  }
+
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,106,247,0.35); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+
+  /* API URL row */
+  .api-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .api-row input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .api-row input:focus { border-color: var(--accent); }
+
+  /* Error */
+  .error-box {
+    background: rgba(247,106,140,0.1);
+    border: 1px solid rgba(247,106,140,0.3);
+    border-radius: 10px;
+    padding: 14px 18px;
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 13px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  /* Results */
+  .results {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .results-title {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .badge-green { background: rgba(74,247,160,0.12); color: var(--green); border: 1px solid rgba(74,247,160,0.2); }
+  .badge-yellow { background: rgba(247,217,106,0.12); color: var(--yellow); border: 1px solid rgba(247,217,106,0.2); }
+  .badge-red { background: rgba(247,106,140,0.12); color: var(--accent2); border: 1px solid rgba(247,106,140,0.2); }
+  .badge-purple { background: rgba(124,106,247,0.12); color: var(--accent); border: 1px solid rgba(124,106,247,0.2); }
+
+  /* Summary cards */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+  }
+
+  .summary-card .val {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .summary-card .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: var(--mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Identity row */
+  .identity-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .identity-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .identity-chip span { color: var(--text); font-weight: 500; }
+
+  /* Hierarchies */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-bottom: 14px;
+  }
+
+  .hierarchy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .h-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .h-card:hover { border-color: var(--accent); }
+
+  .h-card.cyclic { border-color: rgba(247,106,140,0.3); }
+  .h-card.cyclic:hover { border-color: var(--accent2); }
+
+  .h-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .root-label {
+    font-size: 22px;
+    font-weight: 800;
+    font-family: var(--mono);
+    color: var(--accent);
+  }
+
+  .h-card.cyclic .root-label { color: var(--accent2); }
+
+  .depth-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .tree-visual {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    background: rgba(74,247,160,0.04);
+    border-radius: 8px;
+    padding: 10px 12px;
+    line-height: 1.8;
+    word-break: break-all;
+    overflow-x: auto;
+  }
+
+  .cycle-msg {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+    background: rgba(247,106,140,0.06);
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+
+  /* Invalid / Duplicates */
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+
+  .pill-red { color: var(--accent2); border-color: rgba(247,106,140,0.3); background: rgba(247,106,140,0.07); }
+  .pill-yellow { color: var(--yellow); border-color: rgba(247,217,106,0.3); background: rgba(247,217,106,0.07); }
+
+  .empty-note {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    padding: 8px 0;
+  }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 20px 0;
+  }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Tree renderer */
+  .tree-line { display: block; }
+  .tree-indent { display: inline-block; width: 18px; }
+  .tree-connector { color: var(--muted); }
+  .tree-node { color: var(--green); font-weight: 500; }
+
+  hr.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="tag">BFHL Challenge</div>
+    <h1>Node <span>Explorer</span></h1>
+    <p class="subtitle">Enter node edges to parse tree hierarchies and detect cycles</p>
+  </header>
+
+  <div class="input-section">
+    <div class="section-label">API Endpoint</div>
+    <div class="api-row">
+      <input type="text" id="apiUrl" placeholder="https://your-api.onrender.com" />
+    </div>
+
+    <div class="section-label">Node Edges</div>
+    <textarea id="nodeInput" placeholder='Comma or newline separated, e.g.:
+A->B, A->C, B->D, C->E, E->F, X->Y, Y->Z, Z->X, hello, 1->2'></textarea>
+    <div class="hint">// each entry: single uppercase letter → single uppercase letter</div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="submitBtn" onclick="handleSubmit()">Run Analysis</button>
+      <button class="btn-ghost" onclick="loadExample()">Load Example</button>
+      <button class="btn-ghost" onclick="clearAll()">Clear</button>
+    </div>
+  </div>
+
+  <div id="errorBox" style="display:none" class="error-box"></div>
+  <div id="loadingBox" style="display:none" class="loading"><div class="spinner"></div> Calling API...</div>
+  <div id="results" style="display:none" class="results"></div>
+
+</div>
+
+<script>
+const EXAMPLE = 'A->B, A->C, B->D, C->E, E->F, X->Y, Y->Z, Z->X, P->Q, Q->R, G->H, G->H, G->I, hello, 1->2, A->';
+
+function loadExample() {
+  document.getElementById('nodeInput').value = EXAMPLE;
+}
+
+function clearAll() {
+  document.getElementById('nodeInput').value = '';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = '⚠ ' + msg;
+  box.style.display = 'block';
+}
+
+function hideError() {
+  document.getElementById('errorBox').style.display = 'none';
+}
+
+function renderTree(node, treeObj, prefix = '', isLast = true) {
+  if (!treeObj || typeof treeObj !== 'object') return '';
+  const children = Object.keys(treeObj[node] || {});
+  let html = `<span class="tree-line">${prefix}<span class="tree-connector">${prefix ? (isLast ? '└─ ' : '├─ ') : ''}</span><span class="tree-node">${node}</span></span>`;
+  children.forEach((child, i) => {
+    const last = i === children.length - 1;
+    const newPrefix = prefix + (isLast ? '   ' : '│  ');
+    html += renderTree(child, treeObj[node], newPrefix, last);
+  });
+  return html;
+}
+
+function renderResults(data) {
+  const { user_id, email_id, college_roll_number, hierarchies, invalid_entries, duplicate_edges, summary } = data;
+
+  let html = `
+    <div class="results-header">
+      <div class="results-title">Analysis Results</div>
+      <span class="badge badge-green">200 OK</span>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="val">${summary.total_trees}</div>
+        <div class="lbl">Valid Trees</div>
+      </div>
+      <div class="summary-card">
+        <div class="val">${summary.total_cycles}</div>
+        <div class="lbl">Cycles Found</div>
+      </div>
+      <div class="summary-card">
+        <div class="val">${summary.largest_tree_root || '—'}</div>
+        <div class="lbl">Largest Tree Root</div>
+      </div>
+      <div class="summary-card">
+        <div class="val">${hierarchies.length}</div>
+        <div class="lbl">Total Groups</div>
+      </div>
+    </div>
+
+    <div class="identity-row">
+      <div class="identity-chip">user_id: <span>${user_id}</span></div>
+      <div class="identity-chip">email: <span>${email_id}</span></div>
+      <div class="identity-chip">roll: <span>${college_roll_number}</span></div>
+    </div>
+
+    <hr class="divider"/>
+
+    <div class="section-title">Hierarchies (${hierarchies.length})</div>
+    <div class="hierarchy-grid">
+  `;
+
+  for (const h of hierarchies) {
+    if (h.has_cycle) {
+      html += `
+        <div class="h-card cyclic">
+          <div class="h-header">
+            <div class="root-label">${h.root}</div>
+            <span class="badge badge-red">CYCLE</span>
+          </div>
+          <div class="cycle-msg">⟳ Cyclic group detected<br/>tree: {}</div>
+        </div>
+      `;
+    } else {
+      const treeHtml = renderTree(h.root, h.tree);
+      html += `
+        <div class="h-card">
+          <div class="h-header">
+            <div class="root-label">${h.root}</div>
+            <span class="depth-badge">depth: ${h.depth}</span>
+          </div>
+          <div class="tree-visual">${treeHtml}</div>
+        </div>
+      `;
+    }
+  }
+
+  html += `</div><hr class="divider"/>`;
+
+  // Invalid entries
+  html += `<div class="section-title">Invalid Entries (${invalid_entries.length})</div>`;
+  if (invalid_entries.length === 0) {
+    html += `<div class="empty-note">// none</div>`;
+  } else {
+    html += `<div class="pill-row">`;
+    for (const e of invalid_entries) {
+      html += `<span class="pill pill-red">${e || '(empty)'}</span>`;
+    }
+    html += `</div>`;
+  }
+
+  // Duplicate edges
+  html += `<hr class="divider"/><div class="section-title">Duplicate Edges (${duplicate_edges.length})</div>`;
+  if (duplicate_edges.length === 0) {
+    html += `<div class="empty-note">// none</div>`;
+  } else {
+    html += `<div class="pill-row">`;
+    for (const e of duplicate_edges) {
+      html += `<span class="pill pill-yellow">${e}</span>`;
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById('results').innerHTML = html;
+  document.getElementById('results').style.display = 'block';
+}
+
+async function handleSubmit() {
+  hideError();
+  document.getElementById('results').style.display = 'none';
+
+  const rawUrl = document.getElementById('apiUrl').value.trim();
+  const rawInput = document.getElementById('nodeInput').value.trim();
+
+  if (!rawUrl) { showError('Please enter your API URL first.'); return; }
+  if (!rawInput) { showError('Please enter some node edges.'); return; }
+
+  // Parse input: support commas and newlines
+  const data = rawInput
+    .split(/[\n,]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  document.getElementById('loadingBox').style.display = 'flex';
+
+  try {
+    const apiUrl = rawUrl.replace(/\/$/, '') + '/bfhl';
+    const resp = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data })
+    });
+
+    if (!resp.ok) {
+      throw new Error(`API returned ${resp.status}: ${resp.statusText}`);
+    }
+
+    const result = await resp.json();
+    renderResults(result);
+  } catch (err) {
+    showError(err.message || 'Failed to reach API. Check the URL and try again.');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('loadingBox').style.display = 'none';
+  }
+}
+
+// Allow Enter in URL field to submit
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('apiUrl').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSubmit();
+  });
+});
+</script>
+</body>
+</html>
